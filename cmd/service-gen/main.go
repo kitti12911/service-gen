@@ -16,6 +16,7 @@ func main() {
 	flag.StringVar(&cfg.Name, "name", "", "project name, for example user-service")
 	flag.StringVar(&cfg.ModulePath, "module", "", "Go module path, for example github.com/kitti12911/user-service")
 	flag.StringVar(&cfg.OutputDir, "out", "", "output directory")
+	flag.StringVar(&cfg.CodeOwner, "code-owner", "@kitti12911", "GitHub CODEOWNERS owner, for example @team/service-owners")
 	flag.BoolVar(&cfg.Force, "force", false, "overwrite existing generated files")
 	flag.Parse()
 
