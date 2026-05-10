@@ -1,0 +1,9 @@
+# test coverage
+coverage.out
+
+# generated examples
+tmp/
+
+# local config
+config.yml
+config.yaml
