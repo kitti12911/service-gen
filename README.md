@@ -41,8 +41,8 @@ Generated services include:
 
 - `.github` workflows, CODEOWNERS, and Renovate config.
 - `.vscode` workspace recommendations and formatting settings.
-- `.markdownlint-cli2.jsonc`, `.gitignore`, `Makefile`, `Dockerfile`, and
-  `README.md`.
+- `.markdownlint-cli2.jsonc`, `.gitignore`, `.air.toml`, `Makefile`,
+  `Dockerfile`, and `README.md`.
 - `buf.yaml`, `buf.gen.yaml`, an embedded starter proto, and generated-code
   commands.
 - `config.example.yml` and Go config loading from environment variables.

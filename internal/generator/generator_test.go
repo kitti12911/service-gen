@@ -30,6 +30,7 @@ func TestGenerateGRPC(t *testing.T) {
 	assertFileContains(t, dir, "buf.gen.yaml", "github.com/kitti12911/demo-grpc/gen/grpc")
 	assertFileContains(t, dir, "proto/demo_grpc/v1/starter.proto", "service StarterService")
 	assertFileContains(t, dir, "README.md", "Internal gRPC service")
+	assertFileContains(t, dir, ".air.toml", `cmd = "go build -o ./tmp/main ./cmd/server"`)
 	assertFileContains(t, dir, ".github/workflows/go-ci.yml", "actions/setup-go")
 	assertFileContains(t, dir, ".github/workflows/go-ci.yml", "Update Helm Values")
 	assertFileContains(t, dir, ".github/workflows/go-ci.yml", "golangci-lint-action")
