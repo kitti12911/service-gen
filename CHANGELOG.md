@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.2](https://github.com/kitti12911/service-gen/compare/v1.1.1...v1.1.2) (2026-05-10)
+
+
+### Bug Fixes
+
+* add missing .air.toml ([5f10cc3](https://github.com/kitti12911/service-gen/commit/5f10cc32e60a765839c1ef4c2ad3a94b74421c28))
+
 ## [1.1.1](https://github.com/kitti12911/service-gen/compare/v1.1.0...v1.1.1) (2026-05-10)
 
 
