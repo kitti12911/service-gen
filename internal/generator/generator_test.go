@@ -26,6 +26,7 @@ func TestGenerateGRPC(t *testing.T) {
 	assertFileContains(t, dir, "internal/database/database.go", "github.com/kitti12911/lib-orm/v2")
 	assertFileContains(t, dir, "internal/config/config.go", "github.com/kitti12911/lib-util/v3/logger")
 	assertFileContains(t, dir, "config.example.yml", "port: 50051")
+	assertFileContains(t, dir, "buf.yaml", "STANDARD")
 	assertFileContains(t, dir, "buf.gen.yaml", "github.com/kitti12911/demo-grpc/gen/grpc")
 	assertFileContains(t, dir, "proto/demo_grpc/v1/starter.proto", "service StarterService")
 	assertFileContains(t, dir, "README.md", "Internal gRPC service")

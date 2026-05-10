@@ -1078,7 +1078,7 @@ tidy:
 run:
 	go run ./cmd/server
 
-lint: gen vet golangci-lint markdownlint
+lint: gen vet golangci-lint markdownlint lint-proto
 
 vet: gen
 	go vet ./...
@@ -1089,13 +1089,19 @@ golangci-lint: gen
 markdownlint:
 	markdownlint-cli2
 
+lint-proto:
+	buf lint
+
 fmt:
 	go fmt ./...
 
 pretty:
 	prettier --write "**/*.{md,markdown,yml,yaml,json,jsonc}"
 
-format: gen fmt pretty
+format-proto:
+	buf format -w
+
+format: gen fmt pretty format-proto
 
 test: gen
 	env CGO_ENABLED=1 go test --race -v ./...
@@ -1342,20 +1348,30 @@ plugins:
       out: gen/grpc
       opt: paths=source_relative
 `,
+	"buf.yaml": `version: v2
+modules:
+    - path: proto
+lint:
+    use:
+        - STANDARD
+breaking:
+    use:
+        - FILE
+`,
 	"proto/{{ .ProtoPackagePath }}/v1/starter.proto": `syntax = "proto3";
 
 package {{ .ProtoPackage }}.v1;
 
 message PingRequest {
-    string message = 1;
+  string message = 1;
 }
 
 message PingResponse {
-    string message = 1;
+  string message = 1;
 }
 
 service StarterService {
-    rpc Ping(PingRequest) returns (PingResponse);
+  rpc Ping(PingRequest) returns (PingResponse);
 }
 `,
 	"cmd/server/main.go": `package main
