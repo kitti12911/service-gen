@@ -7,6 +7,14 @@ projects stay separate because they are the outside-world contract boundary.
 The generator is intentionally simple: it renders whole template files to the
 target directory and avoids hidden framework behavior.
 
+## Installation
+
+Install the latest released command:
+
+```sh
+go install github.com/kitti12911/service-gen/cmd/service-gen@latest
+```
+
 ## Usage
 
 Generate a gRPC service:
