@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.1](https://github.com/kitti12911/service-gen/compare/v1.1.0...v1.1.1) (2026-05-10)
+
+
+### Bug Fixes
+
+* fix buf warning ([#5](https://github.com/kitti12911/service-gen/issues/5)) ([3aa7a71](https://github.com/kitti12911/service-gen/commit/3aa7a717164d64655856153543d5ad9815d1c3eb))
+
 ## [1.1.0](https://github.com/kitti12911/service-gen/compare/v1.0.0...v1.1.0) (2026-05-10)
 
 
