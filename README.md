@@ -43,7 +43,8 @@ Generated services include:
 - `.vscode` workspace recommendations and formatting settings.
 - `.markdownlint-cli2.jsonc`, `.gitignore`, `Makefile`, `Dockerfile`, and
   `README.md`.
-- `buf.gen.yaml`, an embedded starter proto, and generated-code commands.
+- `buf.yaml`, `buf.gen.yaml`, an embedded starter proto, and generated-code
+  commands.
 - `config.example.yml` and Go config loading from environment variables.
 - A starter database connection helper using `lib-orm`.
 
