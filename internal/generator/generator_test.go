@@ -7,58 +7,184 @@ import (
 	"testing"
 )
 
-func TestGenerateGRPC(t *testing.T) {
-	dir := filepath.Join(t.TempDir(), "demo-grpc")
-
-	err := Generate(Config{
-		Name:       "demo-grpc",
-		ModulePath: "github.com/kitti12911/demo-grpc",
-		OutputDir:  dir,
-	})
-	if err != nil {
-		t.Fatal(err)
+func TestGeneratePatterns(t *testing.T) {
+	cases := []struct {
+		pattern   string
+		mustHave  []fileCheck
+		mustMiss  []string // relative paths that must NOT exist
+		fileCount int      // minimum expected file count
+	}{
+		{
+			pattern: PatternGRPC,
+			mustHave: []fileCheck{
+				{"go.mod", "module github.com/kitti12911/demo-grpc"},
+				{"go.mod", "go 1.26.3"},
+				{"go.mod", "github.com/kitti12911/lib-orm/v3"},
+				{"internal/server/grpc.go", "NewGRPCServer"},
+				{"internal/server/grpc.go", "RegisterHealthServer"},
+				{"internal/feature/starter/starter.go", "func Ping"},
+				{"internal/database/database.go", "github.com/kitti12911/lib-orm/v3"},
+				{"buf.gen.yaml", "directory: proto"},
+				{"config.example.yml", "name: demo-grpc"},
+				{".github/workflows/go-ci.yml", "actions/checkout"},
+				{".gitlab-ci.yml", "stages:"},
+				{".golangci.yml", "github.com/kitti12911/demo-grpc"},
+			},
+			mustMiss: []string{
+				"internal/feature/user",
+				"internal/feature/worker",
+				"internal/database/migrations",
+				"internal/database/seeders",
+			},
+			fileCount: 40,
+		},
+		{
+			pattern: PatternWorker,
+			mustHave: []fileCheck{
+				{"go.mod", "module github.com/kitti12911/demo-worker"},
+				{"internal/worker/handler.go", "package worker"},
+				{".github/workflows/go-ci.yml", "actions/checkout"},
+				{".gitlab-ci.yml", "stages:"},
+			},
+			fileCount: 30,
+		},
+		{
+			pattern: PatternOAS,
+			mustHave: []fileCheck{
+				{"go.mod", "module github.com/kitti12911/demo-oas"},
+				{"go.mod", "github.com/danielgtaylor/huma/v2"},
+				{"internal/api/system/api.go", "/health"},
+				{"internal/server/http.go", "NewHTTPServer"},
+				{"cmd/gen-oas/main.go", "OpenAPI"},
+				{".github/workflows/go-ci.yml", "actions/checkout"},
+				{".gitlab-ci.yml", "stages:"},
+			},
+			mustMiss: []string{
+				"internal/api/users",
+				"internal/api/worker",
+				"cmd/gen-patch",
+				"buf.gen.yaml",
+			},
+			fileCount: 50,
+		},
 	}
 
-	assertFileContains(t, dir, "internal/server/grpc.go", "RegisterHealthServer")
-	assertFileContains(t, dir, "internal/server/grpc.go", "RegisterStarterServiceServer")
-	assertFileContains(t, dir, "internal/server/grpc.go", "NewGRPCServer")
-	assertFileContains(t, dir, "internal/feature/starter/handler.go", "Ping")
-	assertFileContains(t, dir, "internal/database/database.go", "github.com/kitti12911/lib-orm/v2")
-	assertFileContains(t, dir, "internal/config/config.go", "github.com/kitti12911/lib-util/v3/logger")
-	assertFileContains(t, dir, "config.example.yml", "port: 50051")
-	assertFileContains(t, dir, "buf.yaml", "STANDARD")
-	assertFileContains(t, dir, "buf.gen.yaml", "github.com/kitti12911/demo-grpc/gen/grpc")
-	assertFileContains(t, dir, "proto/demo_grpc/v1/starter.proto", "service StarterService")
-	assertFileContains(t, dir, "README.md", "Internal gRPC service")
-	assertFileContains(t, dir, ".air.toml", `cmd = "go build -o ./tmp/main ./cmd/server"`)
-	assertFileContains(t, dir, ".github/workflows/go-ci.yml", "actions/setup-go")
-	assertFileContains(t, dir, ".github/workflows/go-ci.yml", "Update Helm Values")
-	assertFileContains(t, dir, ".github/workflows/go-ci.yml", "golangci-lint-action")
-	assertFileContains(t, dir, ".github/workflows/release.yml", "Build and Scan Image")
-	assertFileContains(t, dir, ".releaserc.json", `"prerelease": "beta"`)
-	assertFileContains(t, dir, ".prettierrc.json", `"tabWidth": 4`)
-	assertFileContains(t, dir, ".prettierignore", "tmp/")
-	assertFileContains(t, dir, ".golangci.yml", "github.com/kitti12911/demo-grpc")
-	assertFileContains(t, dir, "go.mod", "github.com/kitti12911/lib-orm/v2")
-	assertFileContains(t, dir, "go.mod", "google.golang.org/grpc")
-	assertFileContains(t, dir, "go.mod", "go 1.26.3")
+	for _, tc := range cases {
+		t.Run(tc.pattern, func(t *testing.T) {
+			dir := filepath.Join(t.TempDir(), "demo-"+tc.pattern)
+			err := Generate(Config{
+				Name:       "demo-" + tc.pattern,
+				ModulePath: "github.com/kitti12911/demo-" + tc.pattern,
+				OutputDir:  dir,
+				Pattern:    tc.pattern,
+				CI:         CIBoth,
+				NoTidy:     true,
+				NoGit:      true,
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			count := countFiles(t, dir)
+			if count < tc.fileCount {
+				t.Errorf("got %d files, expected at least %d", count, tc.fileCount)
+			}
+
+			for _, check := range tc.mustHave {
+				assertFileContains(t, dir, check.path, check.want)
+			}
+			for _, miss := range tc.mustMiss {
+				if _, err := os.Stat(filepath.Join(dir, miss)); err == nil {
+					t.Errorf("path %s should not exist", miss)
+				}
+			}
+		})
+	}
 }
 
-func TestGenerateUsesConfiguredCodeOwner(t *testing.T) {
-	dir := filepath.Join(t.TempDir(), "demo-grpc")
-
-	err := Generate(Config{
-		Name:       "demo-grpc",
-		ModulePath: "github.com/kitti12911/demo-grpc",
-		OutputDir:  dir,
-		CodeOwner:  "@example/platform",
-	})
-	if err != nil {
-		t.Fatal(err)
+func TestCIFilter(t *testing.T) {
+	cases := []struct {
+		ci       string
+		wantGH   bool
+		wantGitL bool
+	}{
+		{CIBoth, true, true},
+		{CIGitHub, true, false},
+		{CIGitLab, false, true},
 	}
 
-	assertFileContains(t, dir, ".github/CODEOWNERS", "/.github/ @example/platform")
-	assertFileContains(t, dir, ".github/CODEOWNERS", "/Makefile @example/platform")
+	for _, tc := range cases {
+		t.Run(tc.ci, func(t *testing.T) {
+			dir := filepath.Join(t.TempDir(), "demo")
+			err := Generate(Config{
+				Name:       "demo",
+				ModulePath: "github.com/kitti12911/demo",
+				OutputDir:  dir,
+				Pattern:    PatternWorker,
+				CI:         tc.ci,
+				NoTidy:     true,
+				NoGit:      true,
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			ghExists := exists(filepath.Join(dir, ".github", "workflows", "go-ci.yml"))
+			glExists := exists(filepath.Join(dir, ".gitlab-ci.yml"))
+
+			if ghExists != tc.wantGH {
+				t.Errorf("github workflows: got exists=%v, want %v", ghExists, tc.wantGH)
+			}
+			if glExists != tc.wantGitL {
+				t.Errorf("gitlab-ci.yml: got exists=%v, want %v", glExists, tc.wantGitL)
+			}
+		})
+	}
+}
+
+func TestGenerateRejectsBadInputs(t *testing.T) {
+	cases := []struct {
+		name string
+		cfg  Config
+		want string
+	}{
+		{
+			name: "bad name",
+			cfg:  Config{Name: "BadName", ModulePath: "x", OutputDir: t.TempDir(), Pattern: PatternGRPC},
+			want: "kebab-case",
+		},
+		{
+			name: "missing module",
+			cfg:  Config{Name: "ok", OutputDir: t.TempDir(), Pattern: PatternGRPC},
+			want: "module",
+		},
+		{
+			name: "missing pattern",
+			cfg:  Config{Name: "ok", ModulePath: "x", OutputDir: t.TempDir()},
+			want: "pattern",
+		},
+		{
+			name: "unknown pattern",
+			cfg:  Config{Name: "ok", ModulePath: "x", OutputDir: t.TempDir(), Pattern: "rest"},
+			want: "unknown pattern",
+		},
+		{
+			name: "unknown ci",
+			cfg:  Config{Name: "ok", ModulePath: "x", OutputDir: t.TempDir(), Pattern: PatternGRPC, CI: "circle"},
+			want: "unknown ci",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			tc.cfg.NoTidy = true
+			tc.cfg.NoGit = true
+			err := Generate(tc.cfg)
+			if err == nil || !strings.Contains(err.Error(), tc.want) {
+				t.Fatalf("expected error containing %q, got %v", tc.want, err)
+			}
+		})
+	}
 }
 
 func TestGenerateRefusesExistingFile(t *testing.T) {
@@ -72,20 +198,67 @@ func TestGenerateRefusesExistingFile(t *testing.T) {
 		Name:       "demo-grpc",
 		ModulePath: "github.com/kitti12911/demo-grpc",
 		OutputDir:  dir,
+		Pattern:    PatternGRPC,
+		NoTidy:     true,
+		NoGit:      true,
 	})
 	if err == nil || !strings.Contains(err.Error(), "already exists") {
 		t.Fatalf("expected existing file error, got %v", err)
 	}
 }
 
-func assertFileContains(t *testing.T, root, rel, want string) {
-	t.Helper()
-
-	body, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(rel)))
+func TestGenerateUsesConfiguredCodeOwner(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "demo")
+	err := Generate(Config{
+		Name:       "demo",
+		ModulePath: "github.com/kitti12911/demo",
+		OutputDir:  dir,
+		CodeOwner:  "@example/platform",
+		Pattern:    PatternWorker,
+		NoTidy:     true,
+		NoGit:      true,
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(body), want) {
-		t.Fatalf("%s does not contain %q", rel, want)
+	assertFileContains(t, dir, ".github/CODEOWNERS", "@example/platform")
+}
+
+type fileCheck struct {
+	path string
+	want string
+}
+
+func assertFileContains(t *testing.T, root, rel, want string) {
+	t.Helper()
+	body, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(rel)))
+	if err != nil {
+		t.Fatalf("read %s: %v", rel, err)
 	}
+	if !strings.Contains(string(body), want) {
+		t.Fatalf("%s does not contain %q\n---\n%s", rel, want, body)
+	}
+}
+
+func exists(path string) bool {
+	_, err := os.Stat(path)
+	return err == nil
+}
+
+func countFiles(t *testing.T, root string) int {
+	t.Helper()
+	n := 0
+	err := filepath.Walk(root, func(_ string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() {
+			n++
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return n
 }

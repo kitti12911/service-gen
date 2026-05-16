@@ -34,6 +34,14 @@ cov:
 fix:
 	go fix ./...
 
-# ____________________ Generate Example ____________________
+# ____________________ Generate Examples ____________________
+examples: example-grpc example-oas example-worker
+
 example-grpc:
-	go run ./cmd/service-gen -name demo-grpc -module github.com/kitti12911/demo-grpc -out tmp/demo-grpc -force
+	go run ./cmd/service-gen -name demo-grpc -module github.com/kitti12911/demo-grpc -pattern grpc -out tmp/demo-grpc -force -no-tidy -no-git
+
+example-oas:
+	go run ./cmd/service-gen -name demo-oas -module github.com/kitti12911/demo-oas -pattern oas -out tmp/demo-oas -force -no-tidy -no-git
+
+example-worker:
+	go run ./cmd/service-gen -name demo-worker -module github.com/kitti12911/demo-worker -pattern worker -out tmp/demo-worker -force -no-tidy -no-git

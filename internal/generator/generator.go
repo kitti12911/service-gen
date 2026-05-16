@@ -1,16 +1,20 @@
 package generator
 
 import (
-	"bytes"
+	"context"
+	"embed"
 	"errors"
 	"fmt"
-	"maps"
+	"io/fs"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
-	"text/template"
 )
+
+//go:embed all:_templates
+var templatesFS embed.FS
 
 // Config controls how a service project is generated.
 type Config struct {
@@ -18,20 +22,28 @@ type Config struct {
 	ModulePath string
 	OutputDir  string
 	CodeOwner  string
+	Pattern    string
+	CI         string
 	Force      bool
+	NoTidy     bool
+	NoGit      bool
 }
 
-type data struct {
-	Name             string
-	ModulePath       string
-	BinaryName       string
-	GRPCPort         string
-	CodeOwner        string
-	ProtoPackage     string
-	ProtoPackagePath string
-}
+const (
+	PatternGRPC   = "grpc"
+	PatternOAS    = "oas"
+	PatternWorker = "worker"
 
-var validName = regexp.MustCompile(`^[a-z][a-z0-9-]*$`)
+	CIGitHub = "github"
+	CIGitLab = "gitlab"
+	CIBoth   = "both"
+)
+
+var (
+	validName     = regexp.MustCompile(`^[a-z][a-z0-9-]*$`)
+	validPatterns = map[string]struct{}{PatternGRPC: {}, PatternOAS: {}, PatternWorker: {}}
+	validCIs      = map[string]struct{}{CIGitHub: {}, CIGitLab: {}, CIBoth: {}}
+)
 
 // Generate writes a service bootstrap project to Config.OutputDir.
 func Generate(cfg Config) error {
@@ -39,9 +51,11 @@ func Generate(cfg Config) error {
 	cfg.ModulePath = strings.TrimSpace(cfg.ModulePath)
 	cfg.OutputDir = strings.TrimSpace(cfg.OutputDir)
 	cfg.CodeOwner = strings.TrimSpace(cfg.CodeOwner)
+	cfg.Pattern = strings.TrimSpace(cfg.Pattern)
+	cfg.CI = strings.TrimSpace(cfg.CI)
 
 	if !validName.MatchString(cfg.Name) {
-		return errors.New("name must use lowercase kebab-case, for example grpc-sandbox")
+		return errors.New("name must use lowercase kebab-case, for example user-service")
 	}
 	if cfg.ModulePath == "" {
 		return errors.New("module is required")
@@ -52,37 +66,85 @@ func Generate(cfg Config) error {
 	if cfg.CodeOwner == "" {
 		cfg.CodeOwner = "@kitti12911"
 	}
-
-	d := data{
-		Name:             cfg.Name,
-		ModulePath:       cfg.ModulePath,
-		BinaryName:       cfg.Name,
-		GRPCPort:         "50051",
-		CodeOwner:        cfg.CodeOwner,
-		ProtoPackage:     strings.ReplaceAll(cfg.Name, "-", "_"),
-		ProtoPackagePath: strings.ReplaceAll(cfg.Name, "-", "_"),
+	if cfg.Pattern == "" {
+		return errors.New("pattern is required (grpc, oas, or worker)")
+	}
+	if _, ok := validPatterns[cfg.Pattern]; !ok {
+		return fmt.Errorf("unknown pattern %q (must be grpc, oas, or worker)", cfg.Pattern)
+	}
+	if cfg.CI == "" {
+		cfg.CI = CIBoth
+	}
+	if _, ok := validCIs[cfg.CI]; !ok {
+		return fmt.Errorf("unknown ci %q (must be github, gitlab, or both)", cfg.CI)
 	}
 
-	files := make(map[string]string, len(commonTemplates)+len(grpcTemplates))
-	maps.Copy(files, commonTemplates)
-	maps.Copy(files, grpcTemplates)
+	replacer := strings.NewReplacer(
+		"___MODULE___", cfg.ModulePath,
+		"___NAME___", cfg.Name,
+		"___CODE_OWNER___", cfg.CodeOwner,
+	)
 
-	for rel, body := range files {
-		if err := writeTemplate(cfg.OutputDir, rel, body, d, cfg.Force); err != nil {
-			return err
+	ctx := context.Background()
+
+	if err := walkAndWrite(cfg, "_templates/"+cfg.Pattern, replacer); err != nil {
+		return err
+	}
+
+	if !cfg.NoTidy {
+		if err := runIn(ctx, cfg.OutputDir, "go", "mod", "tidy"); err != nil {
+			return fmt.Errorf("go mod tidy: %w", err)
+		}
+	}
+	if !cfg.NoGit {
+		if err := initGit(ctx, cfg.OutputDir); err != nil {
+			return fmt.Errorf("git init: %w", err)
 		}
 	}
 
 	return nil
 }
 
-func writeTemplate(root, rel, body string, d data, force bool) error {
-	renderedRel, err := renderTemplate(rel, rel, d, false)
+func walkAndWrite(cfg Config, root string, replacer *strings.Replacer) error {
+	err := fs.WalkDir(templatesFS, root, func(path string, entry fs.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		if entry.IsDir() {
+			return nil
+		}
+		rel := strings.TrimPrefix(path, root+"/")
+		if !ciAllows(cfg.CI, rel) {
+			return nil
+		}
+		body, err := fs.ReadFile(templatesFS, path)
+		if err != nil {
+			return fmt.Errorf("read embedded %s: %w", path, err)
+		}
+		return writeFile(cfg.OutputDir, rel, string(body), replacer, cfg.Force)
+	})
 	if err != nil {
-		return err
+		return fmt.Errorf("walk templates %s: %w", root, err)
 	}
+	return nil
+}
 
-	target := filepath.Join(root, filepath.FromSlash(renderedRel))
+func ciAllows(ci, rel string) bool {
+	switch ci {
+	case CIGitHub:
+		return rel != ".gitlab-ci.yml"
+	case CIGitLab:
+		return !strings.HasPrefix(rel, ".github/")
+	default:
+		return true
+	}
+}
+
+func writeFile(root, rel, body string, replacer *strings.Replacer, force bool) error {
+	// Templates may carry a .tmpl suffix so files like go.mod don't make Go's
+	// embed see a nested module. Strip the suffix from the output path.
+	rel = strings.TrimSuffix(rel, ".tmpl")
+	target := filepath.Join(root, filepath.FromSlash(replacer.Replace(rel)))
 	if !force {
 		if _, statErr := os.Stat(target); statErr == nil {
 			return fmt.Errorf("%s already exists; pass -force to overwrite", target)
@@ -90,40 +152,45 @@ func writeTemplate(root, rel, body string, d data, force bool) error {
 			return fmt.Errorf("stat %s: %w", target, statErr)
 		}
 	}
-
-	rendered, err := renderTemplate(rel, body, d, true)
-	if err != nil {
-		return err
-	}
-
+	rendered := replacer.Replace(body)
+	rendered = strings.TrimRight(rendered, " \t\r\n") + "\n"
 	if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
 		return fmt.Errorf("create parent directory for %s: %w", target, err)
 	}
-	//nolint:gosec // Generated project files should be editable by normal repository tooling.
-	if err := os.WriteFile(target, []byte(rendered), 0o644); err != nil {
+	mode := os.FileMode(0o644)
+	if strings.HasSuffix(rel, ".sh") {
+		mode = 0o755
+	}
+	//nolint:gosec // Generated repository files; permission chosen above per file type.
+	if err := os.WriteFile(target, []byte(rendered), mode); err != nil {
 		return fmt.Errorf("write %s: %w", target, err)
 	}
 	return nil
 }
 
-func renderTemplate(name, body string, d data, normalizeFile bool) (string, error) {
-	tmpl, err := template.New(name).Parse(body)
-	if err != nil {
-		return "", fmt.Errorf("parse %s: %w", name, err)
+func runIn(ctx context.Context, dir, name string, args ...string) error {
+	//nolint:gosec // name and args are constructed from internal callers, not user input.
+	cmd := exec.CommandContext(ctx, name, args...)
+	cmd.Dir = dir
+	cmd.Stdout = os.Stderr
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("run %s: %w", name, err)
 	}
+	return nil
+}
 
-	var out bytes.Buffer
-	if err := tmpl.Execute(&out, d); err != nil {
-		return "", fmt.Errorf("render %s: %w", name, err)
+func initGit(ctx context.Context, dir string) error {
+	if err := runIn(ctx, dir, "git", "init", "--initial-branch=main"); err != nil {
+		return err
 	}
-	rendered := strings.NewReplacer(
-		"__GHA_OPEN__", "{{",
-		"__GHA_CLOSE__", "}}",
-		"__TPL_OPEN__", "{{",
-		"__TPL_CLOSE__", "}}",
-	).Replace(out.String())
-	if normalizeFile {
-		rendered = strings.TrimRight(rendered, " \t\r\n") + "\n"
+	if err := runIn(ctx, dir, "git", "add", "."); err != nil {
+		return err
 	}
-	return rendered, nil
+	return runIn(ctx, dir,
+		"git",
+		"-c", "user.email=service-gen@local",
+		"-c", "user.name=service-gen",
+		"commit", "-m", "chore: initial scaffold from service-gen",
+	)
 }

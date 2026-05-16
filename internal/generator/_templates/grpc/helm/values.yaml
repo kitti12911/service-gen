@@ -1,0 +1,101 @@
+replicaCount: 1
+
+image:
+    repository: zot.lan/kitti12911/___NAME___
+    tag: ""
+    digest: ""
+    pullPolicy: IfNotPresent
+
+imagePullSecrets:
+    - name: zot-registry
+
+env: []
+
+gomemlimit:
+    enabled: true
+    percentage: 80
+
+reloader:
+    enabled: true
+
+podSecurityContext: {}
+
+securityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+        drop:
+            - ALL
+    seccompProfile:
+        type: RuntimeDefault
+
+resources: {}
+
+affinity: {}
+
+topologySpreadConstraints: []
+
+service:
+    type: ClusterIP
+    port: 50051
+    headless:
+        enabled: true
+        name: ""
+
+configSecret:
+    create: true
+    name: ""
+
+probes:
+    readiness:
+        enabled: true
+        initialDelaySeconds: 5
+        periodSeconds: 10
+        timeoutSeconds: 3
+        failureThreshold: 3
+    liveness:
+        enabled: true
+        initialDelaySeconds: 15
+        periodSeconds: 20
+        timeoutSeconds: 3
+        failureThreshold: 3
+
+config:
+    service:
+        name: ___NAME___
+        port: 50051
+        shutdown_timeout: 10s
+
+    logging:
+        level: warn
+        add_source: false
+        include_trace_id: true
+
+    tracing:
+        enabled: true
+        endpoint: alloy.observability.svc.cluster.local:4317
+        protocol: grpc
+        insecure: true
+        sample_ratio: 0.1
+
+    profiling:
+        enabled: true
+        server_address: http://pyroscope.observability.svc.cluster.local:4040
+        namespace: ___NAME___
+        basic_auth_user: ""
+        basic_auth_password: ""
+        tenant_id: ""
+
+    database:
+        host: postgresql-rw.database.svc.cluster.local
+        port: "5432"
+        user: example_user
+        password: example_password
+        database: example
+        run_migrations: false
+        run_seeders: false
+        pool:
+            max_conns: 20
+            min_conns: 5
+            max_conn_life_time: 1h
+            max_conn_idle_time: 6h

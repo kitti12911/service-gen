@@ -1,0 +1,5 @@
+apiVersion: v2
+name: ___NAME___
+description: Helm chart for the ___NAME___ service
+type: application
+version: 0.3.0

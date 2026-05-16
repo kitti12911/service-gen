@@ -1,0 +1,11 @@
+/.github/ ___CODE_OWNER___
+/.vscode/ ___CODE_OWNER___
+/.golangci.yml ___CODE_OWNER___
+/.markdownlint-cli2.jsonc ___CODE_OWNER___
+/.prettierrc.json ___CODE_OWNER___
+/.releaserc.json ___CODE_OWNER___
+/.air.toml ___CODE_OWNER___
+/Makefile ___CODE_OWNER___
+/Dockerfile ___CODE_OWNER___
+/buf.gen.yaml ___CODE_OWNER___
+/config.example.yml ___CODE_OWNER___

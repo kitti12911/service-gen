@@ -1,11 +1,14 @@
 # service-gen
 
-Small bootstrap generator for homelab gRPC services.
+Bootstrap generator for homelab services.
 
-It creates a starter project for an internal gRPC service. OpenAPI/gateway
-projects stay separate because they are the outside-world contract boundary.
-The generator is intentionally simple: it renders whole template files to the
-target directory and avoids hidden framework behavior.
+It scaffolds a batteries-included starter project for one of three patterns —
+**gRPC**, **OpenAPI (REST)**, or **worker** — wired with the workspace's
+logging, tracing, profiling, linting, and CI conventions. The generator is
+intentionally simple: it renders whole template files to the target directory
+with flat string substitution and no hidden framework behavior.
+
+Generated projects build, test, and lint cleanly out of the box.
 
 ## Installation
 
@@ -23,34 +26,48 @@ go install ./cmd/service-gen
 
 ## Usage
 
-Generate a gRPC service:
-
 ```sh
 go run ./cmd/service-gen \
     -name demo-grpc \
     -module github.com/kitti12911/demo-grpc \
+    -pattern grpc \
+    -ci both \
     -out ../demo-grpc \
     -code-owner @kitti12911
 ```
 
-Use `-force` when regenerating over an existing generated target.
+### Flags
 
-## Generated Files
+| Flag          | Required | Default       | Description                          |
+| ------------- | -------- | ------------- | ------------------------------------ |
+| `-name`       | yes      |               | Project name in lowercase kebab-case |
+| `-module`     | yes      |               | Go module path                       |
+| `-pattern`    | yes      |               | `grpc`, `oas`, or `worker`           |
+| `-ci`         | no       | `both`        | `github`, `gitlab`, or `both`        |
+| `-out`        | no       | `-name`       | Output directory                     |
+| `-code-owner` | no       | `@kitti12911` | CODEOWNERS owner                     |
+| `-force`      | no       | `false`       | Overwrite existing generated files   |
+| `-no-tidy`    | no       | `false`       | Skip `go mod tidy` after generation  |
+| `-no-git`     | no       | `false`       | Skip `git init` and initial commit   |
 
-Generated services include:
+By default the generator runs `go mod tidy` and creates an initial Git commit
+so the project is immediately usable.
 
-- `.github` workflows, CODEOWNERS, and Renovate config.
-- `.vscode` workspace recommendations and formatting settings.
-- `.markdownlint-cli2.jsonc`, `.gitignore`, `.air.toml`, `Makefile`,
-  `Dockerfile`, and `README.md`.
-- `buf.yaml`, `buf.gen.yaml`, an embedded starter proto, and generated-code
-  commands.
-- `config.example.yml` and Go config loading from environment variables.
-- A starter database connection helper using `lib-orm`.
+## Patterns
 
-The generated service starts a gRPC server with the standard gRPC health
-service and a starter `Ping` RPC. Replace the embedded proto with an external
-protobuf source when the real service contract exists.
+| Pattern  | What you get                                                                                                                                                                                                                       |
+| -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `grpc`   | gRPC server with health + reflection, `lib-orm/v3` DB connection wiring, a `feature/starter` package, and a local `proto/` directory ready for `make gen`. No example CRUD or migrations — migrations live in `migration-sandbox`. |
+| `oas`    | Huma-based OpenAPI/REST service with a `/health` endpoint, OpenAPI JSON/YAML serving, embedded Swagger UI, and an OpenAPI diff/report CI tool. No DB.                                                                              |
+| `worker` | Minimal `lib-async` worker with an event loop and handler.                                                                                                                                                                         |
+
+Every pattern ships GitHub Actions and/or GitLab CI (per `-ci`), Renovate,
+CODEOWNERS, golangci-lint, markdownlint, Prettier, `.air.toml`, a multi-stage
+`Dockerfile`, and semantic-release.
+
+The `internal/feature` / `internal/api` example is deliberately a single simple
+function. Add real business logic and (for gRPC) `.proto` files yourself; run
+`make gen` to regenerate protobuf code.
 
 ## Local Verification
 
