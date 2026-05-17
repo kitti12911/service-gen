@@ -7,6 +7,8 @@ set -eu
 # gRPC clients or PATCH mappers.
 
 mkdir -p gen
-: >gen/.keep
+# Non-hidden marker so upload-artifact (which excludes hidden files by
+# default) still ships a non-empty "generated-code" artifact.
+: >gen/keep
 
 echo "no code generation required for the oas pattern"

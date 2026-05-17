@@ -5,10 +5,17 @@ repo_dir="${CI_PROJECT_DIR:-$(pwd)}"
 cd "${repo_dir}"
 
 rm -rf gen/grpc
+mkdir -p gen
 
-# Generate protobuf code only when .proto files exist. A freshly generated
-# project ships an empty proto/ directory; add your .proto files and this
-# step starts producing code under gen/grpc/.
-if [ -n "$(find proto -name '*.proto' 2>/dev/null)" ]; then
+# Generate protobuf code when there is input: either local .proto files or a
+# remote module configured in buf.gen.yaml (a git_repo input). A freshly
+# generated project has neither yet, so this step is a no-op.
+if [ -n "$(find proto -name '*.proto' 2>/dev/null)" ] ||
+	grep -qE '^[[:space:]]*-[[:space:]]*git_repo:' buf.gen.yaml 2>/dev/null; then
 	buf generate
 fi
+
+# Keep the CI "generated-code" artifact non-empty using a non-hidden marker
+# (upload-artifact excludes hidden files by default), so the lint/test/
+# security jobs that download it do not fail on a project with no protos yet.
+[ -e gen/keep ] || : >gen/keep
