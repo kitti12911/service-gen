@@ -1,4 +1,4 @@
-# ___NAME___
+# **_NAME_**
 
 OpenAPI (REST) service scaffolded by
 [`service-gen`](https://github.com/kitti12911/service-gen).
@@ -27,14 +27,14 @@ Then open <http://localhost:8080/docs>.
 
 ## Common commands
 
-| Command            | Description                            |
-| ------------------ | -------------------------------------- |
-| `make run`         | Start the HTTP server locally          |
-| `make air`         | Run with live reload                   |
-| `make gen-openapi` | Print the OpenAPI document to stdout   |
-| `make test`        | Run tests with the race detector       |
-| `make lint`        | Run Go and Markdown linting            |
-| `make format`      | Format Go, Markdown, YAML, JSON        |
+| Command            | Description                          |
+| ------------------ | ------------------------------------ |
+| `make run`         | Start the HTTP server locally        |
+| `make air`         | Run with live reload                 |
+| `make gen-openapi` | Print the OpenAPI document to stdout |
+| `make test`        | Run tests with the race detector     |
+| `make lint`        | Run Go and Markdown linting          |
+| `make format`      | Format Go, Markdown, YAML, JSON      |
 
 ## Adding endpoints
 

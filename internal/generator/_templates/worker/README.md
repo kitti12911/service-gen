@@ -1,4 +1,4 @@
-# ___NAME___
+# **_NAME_**
 
 Background worker service scaffolded by
 [`service-gen`](https://github.com/kitti12911/service-gen).

@@ -134,7 +134,7 @@ func ciAllows(ci, rel string) bool {
 	case CIGitHub:
 		return rel != ".gitlab-ci.yml"
 	case CIGitLab:
-		return !strings.HasPrefix(rel, ".github/")
+		return !isGitHubTemplate(rel)
 	default:
 		return true
 	}
@@ -144,6 +144,7 @@ func writeFile(root, rel, body string, replacer *strings.Replacer, force bool) e
 	// Templates may carry a .tmpl suffix so files like go.mod don't make Go's
 	// embed see a nested module. Strip the suffix from the output path.
 	rel = strings.TrimSuffix(rel, ".tmpl")
+	rel = outputRel(rel)
 	target := filepath.Join(root, filepath.FromSlash(replacer.Replace(rel)))
 	if !force {
 		if _, statErr := os.Stat(target); statErr == nil {
@@ -166,6 +167,20 @@ func writeFile(root, rel, body string, replacer *strings.Replacer, force bool) e
 		return fmt.Errorf("write %s: %w", target, err)
 	}
 	return nil
+}
+
+func isGitHubTemplate(rel string) bool {
+	return rel == "github" || strings.HasPrefix(rel, "github/")
+}
+
+func outputRel(rel string) string {
+	if rel == "github" {
+		return ".github"
+	}
+	if after, ok := strings.CutPrefix(rel, "github/"); ok {
+		return ".github/" + after
+	}
+	return rel
 }
 
 func runIn(ctx context.Context, dir, name string, args ...string) error {
