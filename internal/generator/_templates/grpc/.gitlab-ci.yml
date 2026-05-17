@@ -95,7 +95,6 @@ generate:
         expire_in: 1 week
         paths:
             - gen/
-            - internal/feature/user/patch_generated.go
 
 lint:go:
     stage: lint

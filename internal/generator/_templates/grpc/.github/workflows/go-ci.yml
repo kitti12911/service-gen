@@ -71,7 +71,6 @@ jobs:
                   name: generated-code
                   path: |
                       gen/
-                      internal/feature/user/patch_generated.go
 
     lint:
         name: Lint
