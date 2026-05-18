@@ -7,7 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/kitti12911/service-gen/internal/generator"
+	"github.com/kitti12911/service-gen/v2/internal/generator"
 )
 
 func main() {
