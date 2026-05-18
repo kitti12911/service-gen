@@ -3,9 +3,9 @@ package config
 import (
 	"time"
 
-	"github.com/kitti12911/lib-monitor/profiling"
-	"github.com/kitti12911/lib-monitor/tracing"
-	"github.com/kitti12911/lib-util/v3/logger"
+	"___LIB_PATH___/lib-monitor/profiling"
+	"___LIB_PATH___/lib-monitor/tracing"
+	"___LIB_PATH___/lib-util/v3/logger"
 )
 
 type Config struct {

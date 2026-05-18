@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	async "github.com/kitti12911/lib-async"
+	async "___LIB_PATH___/lib-async"
 )
 
 func TestHandleLogsJobAndReturnsNil(t *testing.T) {

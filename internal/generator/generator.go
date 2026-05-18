@@ -18,15 +18,20 @@ var templatesFS embed.FS
 
 // Config controls how a service project is generated.
 type Config struct {
-	Name       string
-	ModulePath string
-	OutputDir  string
-	CodeOwner  string
-	Pattern    string
-	CI         string
-	Force      bool
-	NoTidy     bool
-	NoGit      bool
+	Name              string
+	ModulePath        string
+	OutputDir         string
+	CodeOwner         string
+	Pattern           string
+	CI                string
+	LibPath           string
+	LibUtilVersion    string
+	LibMonitorVersion string
+	LibOrmVersion     string
+	LibAsyncVersion   string
+	Force             bool
+	NoTidy            bool
+	NoGit             bool
 }
 
 const (
@@ -36,23 +41,68 @@ const (
 
 	CIGitHub = "github"
 	CIGitLab = "gitlab"
-	CIBoth   = "both"
+
+	DefaultLibUtilVersion    = "v3.15.0"
+	DefaultLibMonitorVersion = "v1.12.0"
+	DefaultLibOrmVersion     = "v3.0.1"
+	DefaultLibAsyncVersion   = "v1.5.1"
 )
 
 var (
 	validName     = regexp.MustCompile(`^[a-z][a-z0-9-]*$`)
 	validPatterns = map[string]struct{}{PatternGRPC: {}, PatternOAS: {}, PatternWorker: {}}
-	validCIs      = map[string]struct{}{CIGitHub: {}, CIGitLab: {}, CIBoth: {}}
+	validCIs      = map[string]struct{}{CIGitHub: {}, CIGitLab: {}}
 )
 
 // Generate writes a service bootstrap project to Config.OutputDir.
 func Generate(cfg Config) error {
+	if err := normalizeAndValidate(&cfg); err != nil {
+		return err
+	}
+
+	replacer := strings.NewReplacer(
+		"___MODULE___", cfg.ModulePath,
+		"___NAME___", cfg.Name,
+		"___CODE_OWNER___", cfg.CodeOwner,
+		"___LIB_PATH___", cfg.LibPath,
+		"___LIB_UTIL_VERSION___", cfg.LibUtilVersion,
+		"___LIB_MONITOR_VERSION___", cfg.LibMonitorVersion,
+		"___LIB_ORM_VERSION___", cfg.LibOrmVersion,
+		"___LIB_ASYNC_VERSION___", cfg.LibAsyncVersion,
+	)
+
+	ctx := context.Background()
+
+	if err := walkAndWrite(cfg, "_templates/"+cfg.Pattern, replacer); err != nil {
+		return err
+	}
+
+	if !cfg.NoTidy {
+		if err := runIn(ctx, cfg.OutputDir, "go", "mod", "tidy"); err != nil {
+			return fmt.Errorf("go mod tidy: %w", err)
+		}
+	}
+	if !cfg.NoGit {
+		if err := initGit(ctx, cfg.OutputDir); err != nil {
+			return fmt.Errorf("git init: %w", err)
+		}
+	}
+
+	return nil
+}
+
+func normalizeAndValidate(cfg *Config) error {
 	cfg.Name = strings.TrimSpace(cfg.Name)
 	cfg.ModulePath = strings.TrimSpace(cfg.ModulePath)
 	cfg.OutputDir = strings.TrimSpace(cfg.OutputDir)
 	cfg.CodeOwner = strings.TrimSpace(cfg.CodeOwner)
 	cfg.Pattern = strings.TrimSpace(cfg.Pattern)
 	cfg.CI = strings.TrimSpace(cfg.CI)
+	cfg.LibPath = strings.Trim(strings.TrimSpace(cfg.LibPath), "/")
+	cfg.LibUtilVersion = defaultIfEmpty(strings.TrimSpace(cfg.LibUtilVersion), DefaultLibUtilVersion)
+	cfg.LibMonitorVersion = defaultIfEmpty(strings.TrimSpace(cfg.LibMonitorVersion), DefaultLibMonitorVersion)
+	cfg.LibOrmVersion = defaultIfEmpty(strings.TrimSpace(cfg.LibOrmVersion), DefaultLibOrmVersion)
+	cfg.LibAsyncVersion = defaultIfEmpty(strings.TrimSpace(cfg.LibAsyncVersion), DefaultLibAsyncVersion)
 
 	if !validName.MatchString(cfg.Name) {
 		return errors.New("name must use lowercase kebab-case, for example user-service")
@@ -73,35 +123,17 @@ func Generate(cfg Config) error {
 		return fmt.Errorf("unknown pattern %q (must be grpc, oas, or worker)", cfg.Pattern)
 	}
 	if cfg.CI == "" {
-		cfg.CI = CIBoth
+		return errors.New("ci is required (github or gitlab)")
 	}
 	if _, ok := validCIs[cfg.CI]; !ok {
-		return fmt.Errorf("unknown ci %q (must be github, gitlab, or both)", cfg.CI)
+		return fmt.Errorf("unknown ci %q (must be github or gitlab)", cfg.CI)
 	}
-
-	replacer := strings.NewReplacer(
-		"___MODULE___", cfg.ModulePath,
-		"___NAME___", cfg.Name,
-		"___CODE_OWNER___", cfg.CodeOwner,
-	)
-
-	ctx := context.Background()
-
-	if err := walkAndWrite(cfg, "_templates/"+cfg.Pattern, replacer); err != nil {
-		return err
+	if cfg.LibPath == "" {
+		return errors.New("lib-path is required, for example github.com/kitti12911 or gitlab.bu8-sd.com/sdo/pharse-3")
 	}
-
-	if !cfg.NoTidy {
-		if err := runIn(ctx, cfg.OutputDir, "go", "mod", "tidy"); err != nil {
-			return fmt.Errorf("go mod tidy: %w", err)
-		}
+	if last := cfg.LibPath[strings.LastIndex(cfg.LibPath, "/")+1:]; strings.HasPrefix(last, "lib-") {
+		return fmt.Errorf("lib-path %q must not include the trailing lib-* segment", cfg.LibPath)
 	}
-	if !cfg.NoGit {
-		if err := initGit(ctx, cfg.OutputDir); err != nil {
-			return fmt.Errorf("git init: %w", err)
-		}
-	}
-
 	return nil
 }
 
@@ -129,14 +161,19 @@ func walkAndWrite(cfg Config, root string, replacer *strings.Replacer) error {
 	return nil
 }
 
+func defaultIfEmpty(s, fallback string) string {
+	if s == "" {
+		return fallback
+	}
+	return s
+}
+
 func ciAllows(ci, rel string) bool {
 	switch ci {
-	case CIGitHub:
-		return rel != ".gitlab-ci.yml"
 	case CIGitLab:
 		return !isGitHubTemplate(rel)
 	default:
-		return true
+		return rel != ".gitlab-ci.yml"
 	}
 }
 

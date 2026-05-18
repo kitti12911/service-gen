@@ -12,10 +12,10 @@ import (
 	"___MODULE___/internal/database"
 	"___MODULE___/internal/server"
 
-	"github.com/kitti12911/lib-monitor/profiling"
-	"github.com/kitti12911/lib-monitor/tracing"
-	libconfig "github.com/kitti12911/lib-util/v3/config"
-	"github.com/kitti12911/lib-util/v3/logger"
+	"___LIB_PATH___/lib-monitor/profiling"
+	"___LIB_PATH___/lib-monitor/tracing"
+	libconfig "___LIB_PATH___/lib-util/v3/config"
+	"___LIB_PATH___/lib-util/v3/logger"
 
 	"github.com/dromara/carbon/v2"
 )

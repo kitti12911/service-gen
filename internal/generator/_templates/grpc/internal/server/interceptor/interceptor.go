@@ -6,7 +6,7 @@ import (
 	"log/slog"
 	"strings"
 
-	"github.com/kitti12911/lib-util/v3/apperror"
+	"___LIB_PATH___/lib-util/v3/apperror"
 
 	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc"

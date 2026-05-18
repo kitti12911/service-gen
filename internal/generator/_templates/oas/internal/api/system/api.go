@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/danielgtaylor/huma/v2"
-	humautil "github.com/kitti12911/lib-util/v3/huma"
+	humautil "___LIB_PATH___/lib-util/v3/huma"
 
 	"___MODULE___/internal/api"
 )

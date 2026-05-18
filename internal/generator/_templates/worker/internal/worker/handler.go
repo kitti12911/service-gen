@@ -4,7 +4,7 @@ import (
 	"context"
 	"log/slog"
 
-	async "github.com/kitti12911/lib-async"
+	async "___LIB_PATH___/lib-async"
 )
 
 type Handler struct{}

@@ -3,10 +3,10 @@ package config
 import (
 	"time"
 
-	"github.com/kitti12911/lib-monitor/profiling"
-	"github.com/kitti12911/lib-monitor/tracing"
-	liborm "github.com/kitti12911/lib-orm/v3"
-	"github.com/kitti12911/lib-util/v3/logger"
+	"___LIB_PATH___/lib-monitor/profiling"
+	"___LIB_PATH___/lib-monitor/tracing"
+	liborm "___LIB_PATH___/lib-orm/v3"
+	"___LIB_PATH___/lib-util/v3/logger"
 )
 
 type Config struct {

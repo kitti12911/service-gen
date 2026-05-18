@@ -8,11 +8,11 @@ import (
 	"syscall"
 	"time"
 
-	async "github.com/kitti12911/lib-async"
-	"github.com/kitti12911/lib-monitor/profiling"
-	"github.com/kitti12911/lib-monitor/tracing"
-	libconfig "github.com/kitti12911/lib-util/v3/config"
-	"github.com/kitti12911/lib-util/v3/logger"
+	async "___LIB_PATH___/lib-async"
+	"___LIB_PATH___/lib-monitor/profiling"
+	"___LIB_PATH___/lib-monitor/tracing"
+	libconfig "___LIB_PATH___/lib-util/v3/config"
+	"___LIB_PATH___/lib-util/v3/logger"
 
 	"___MODULE___/internal/config"
 	"___MODULE___/internal/worker"

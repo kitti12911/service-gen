@@ -27,10 +27,10 @@ func TestGeneratePatterns(t *testing.T) {
 				{"buf.gen.yaml", "directory: proto"},
 				{"config.example.yml", "name: demo-grpc"},
 				{".github/workflows/go-ci.yml", "actions/checkout"},
-				{".gitlab-ci.yml", "stages:"},
 				{".golangci.yml", "github.com/kitti12911/demo-grpc"},
 			},
 			mustMiss: []string{
+				".gitlab-ci.yml",
 				"internal/feature/user",
 				"internal/feature/worker",
 				"internal/database/migrations",
@@ -44,8 +44,8 @@ func TestGeneratePatterns(t *testing.T) {
 				{"go.mod", "module github.com/kitti12911/demo-worker"},
 				{"internal/worker/handler.go", "package worker"},
 				{".github/workflows/go-ci.yml", "actions/checkout"},
-				{".gitlab-ci.yml", "stages:"},
 			},
+			mustMiss:  []string{".gitlab-ci.yml"},
 			fileCount: 30,
 		},
 		{
@@ -57,9 +57,9 @@ func TestGeneratePatterns(t *testing.T) {
 				{"internal/server/http.go", "NewHTTPServer"},
 				{"cmd/gen-oas/main.go", "OpenAPI"},
 				{".github/workflows/go-ci.yml", "actions/checkout"},
-				{".gitlab-ci.yml", "stages:"},
 			},
 			mustMiss: []string{
+				".gitlab-ci.yml",
 				"internal/api/users",
 				"internal/api/worker",
 				"cmd/gen-patch",
@@ -77,7 +77,8 @@ func TestGeneratePatterns(t *testing.T) {
 				ModulePath: "github.com/kitti12911/demo-" + tc.pattern,
 				OutputDir:  dir,
 				Pattern:    tc.pattern,
-				CI:         CIBoth,
+				CI:         CIGitHub,
+				LibPath:    "github.com/kitti12911",
 				NoTidy:     true,
 				NoGit:      true,
 			})
@@ -108,7 +109,6 @@ func TestCIFilter(t *testing.T) {
 		wantGH   bool
 		wantGitL bool
 	}{
-		{CIBoth, true, true},
 		{CIGitHub, true, false},
 		{CIGitLab, false, true},
 	}
@@ -122,6 +122,7 @@ func TestCIFilter(t *testing.T) {
 				OutputDir:  dir,
 				Pattern:    PatternWorker,
 				CI:         tc.ci,
+				LibPath:    "github.com/kitti12911",
 				NoTidy:     true,
 				NoGit:      true,
 			})
@@ -150,28 +151,48 @@ func TestGenerateRejectsBadInputs(t *testing.T) {
 	}{
 		{
 			name: "bad name",
-			cfg:  Config{Name: "BadName", ModulePath: "x", OutputDir: t.TempDir(), Pattern: PatternGRPC},
+			cfg:  Config{Name: "BadName", ModulePath: "x", OutputDir: t.TempDir(), Pattern: PatternGRPC, CI: CIGitHub, LibPath: "github.com/kitti12911"},
 			want: "kebab-case",
 		},
 		{
 			name: "missing module",
-			cfg:  Config{Name: "ok", OutputDir: t.TempDir(), Pattern: PatternGRPC},
+			cfg:  Config{Name: "ok", OutputDir: t.TempDir(), Pattern: PatternGRPC, CI: CIGitHub, LibPath: "github.com/kitti12911"},
 			want: "module",
 		},
 		{
 			name: "missing pattern",
-			cfg:  Config{Name: "ok", ModulePath: "x", OutputDir: t.TempDir()},
+			cfg:  Config{Name: "ok", ModulePath: "x", OutputDir: t.TempDir(), CI: CIGitHub, LibPath: "github.com/kitti12911"},
 			want: "pattern",
 		},
 		{
 			name: "unknown pattern",
-			cfg:  Config{Name: "ok", ModulePath: "x", OutputDir: t.TempDir(), Pattern: "rest"},
+			cfg:  Config{Name: "ok", ModulePath: "x", OutputDir: t.TempDir(), Pattern: "rest", CI: CIGitHub, LibPath: "github.com/kitti12911"},
 			want: "unknown pattern",
 		},
 		{
+			name: "missing ci",
+			cfg:  Config{Name: "ok", ModulePath: "x", OutputDir: t.TempDir(), Pattern: PatternGRPC, LibPath: "github.com/kitti12911"},
+			want: "ci is required",
+		},
+		{
 			name: "unknown ci",
-			cfg:  Config{Name: "ok", ModulePath: "x", OutputDir: t.TempDir(), Pattern: PatternGRPC, CI: "circle"},
+			cfg:  Config{Name: "ok", ModulePath: "x", OutputDir: t.TempDir(), Pattern: PatternGRPC, CI: "circle", LibPath: "github.com/kitti12911"},
 			want: "unknown ci",
+		},
+		{
+			name: "rejects both ci",
+			cfg:  Config{Name: "ok", ModulePath: "x", OutputDir: t.TempDir(), Pattern: PatternGRPC, CI: "both", LibPath: "github.com/kitti12911"},
+			want: "unknown ci",
+		},
+		{
+			name: "missing lib-path",
+			cfg:  Config{Name: "ok", ModulePath: "x", OutputDir: t.TempDir(), Pattern: PatternGRPC, CI: CIGitHub},
+			want: "lib-path is required",
+		},
+		{
+			name: "lib-path with trailing lib segment",
+			cfg:  Config{Name: "ok", ModulePath: "x", OutputDir: t.TempDir(), Pattern: PatternGRPC, CI: CIGitHub, LibPath: "github.com/kitti12911/lib-util"},
+			want: "lib-*",
 		},
 	}
 
@@ -199,6 +220,8 @@ func TestGenerateRefusesExistingFile(t *testing.T) {
 		ModulePath: "github.com/kitti12911/demo-grpc",
 		OutputDir:  dir,
 		Pattern:    PatternGRPC,
+		CI:         CIGitHub,
+		LibPath:    "github.com/kitti12911",
 		NoTidy:     true,
 		NoGit:      true,
 	})
@@ -215,6 +238,8 @@ func TestGenerateUsesConfiguredCodeOwner(t *testing.T) {
 		OutputDir:  dir,
 		CodeOwner:  "@example/platform",
 		Pattern:    PatternWorker,
+		CI:         CIGitHub,
+		LibPath:    "github.com/kitti12911",
 		NoTidy:     true,
 		NoGit:      true,
 	})
@@ -222,6 +247,51 @@ func TestGenerateUsesConfiguredCodeOwner(t *testing.T) {
 		t.Fatal(err)
 	}
 	assertFileContains(t, dir, ".github/CODEOWNERS", "@example/platform")
+}
+
+func TestGenerateSubstitutesLibPath(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "demo")
+	err := Generate(Config{
+		Name:       "demo",
+		ModulePath: "gitlab.bu8-sd.com/sdo/pharse-3/demo",
+		OutputDir:  dir,
+		Pattern:    PatternWorker,
+		CI:         CIGitLab,
+		LibPath:    "gitlab.bu8-sd.com/sdo/pharse-3",
+		NoTidy:     true,
+		NoGit:      true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertFileContains(t, dir, "go.mod", "gitlab.bu8-sd.com/sdo/pharse-3/lib-util/v3 "+DefaultLibUtilVersion)
+	assertFileContains(t, dir, "internal/config/config.go", "gitlab.bu8-sd.com/sdo/pharse-3/lib-monitor")
+	if exists(filepath.Join(dir, ".github")) {
+		t.Errorf(".github should not exist when ci=gitlab")
+	}
+}
+
+func TestGenerateOverridesLibVersions(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "demo")
+	err := Generate(Config{
+		Name:              "demo",
+		ModulePath:        "gitlab.bu8-sd.com/sdo/pharse-3/demo",
+		OutputDir:         dir,
+		Pattern:           PatternGRPC,
+		CI:                CIGitLab,
+		LibPath:           "gitlab.bu8-sd.com/sdo/pharse-3",
+		LibUtilVersion:    "v3.99.0",
+		LibMonitorVersion: "v2.0.0",
+		LibOrmVersion:     "v3.42.0",
+		NoTidy:            true,
+		NoGit:             true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertFileContains(t, dir, "go.mod", "lib-util/v3 v3.99.0")
+	assertFileContains(t, dir, "go.mod", "lib-monitor v2.0.0")
+	assertFileContains(t, dir, "go.mod", "lib-orm/v3 v3.42.0")
 }
 
 type fileCheck struct {

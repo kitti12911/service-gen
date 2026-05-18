@@ -5,7 +5,7 @@ import (
 
 	"___MODULE___/internal/config"
 
-	orm "github.com/kitti12911/lib-orm/v3"
+	orm "___LIB_PATH___/lib-orm/v3"
 )
 
 func New(ctx context.Context, cfg *config.Config) (*orm.DB, error) {

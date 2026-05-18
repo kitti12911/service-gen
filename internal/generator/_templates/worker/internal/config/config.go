@@ -3,10 +3,10 @@ package config
 import (
 	"time"
 
-	async "github.com/kitti12911/lib-async"
-	"github.com/kitti12911/lib-monitor/profiling"
-	"github.com/kitti12911/lib-monitor/tracing"
-	"github.com/kitti12911/lib-util/v3/logger"
+	async "___LIB_PATH___/lib-async"
+	"___LIB_PATH___/lib-monitor/profiling"
+	"___LIB_PATH___/lib-monitor/tracing"
+	"___LIB_PATH___/lib-util/v3/logger"
 )
 
 type Config struct {
