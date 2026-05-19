@@ -45,3 +45,5 @@ example-oas:
 
 example-worker:
 	go run ./cmd/service-gen -name demo-worker -module github.com/kitti12911/demo-worker -pattern worker -out tmp/demo-worker -force -no-tidy -no-git
+
+# force update #1
