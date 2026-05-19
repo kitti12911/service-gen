@@ -52,7 +52,29 @@ var (
 	validName     = regexp.MustCompile(`^[a-z][a-z0-9-]*$`)
 	validPatterns = map[string]struct{}{PatternGRPC: {}, PatternOAS: {}, PatternWorker: {}}
 	validCIs      = map[string]struct{}{CIGitHub: {}, CIGitLab: {}}
+
+	// goPrivateBlockRE matches a fenced README section that should only render
+	// when private-module setup applies. The fence uses HTML comments so the
+	// markers don't break Markdown rendering when intentionally kept.
+	goPrivateBlockRE  = regexp.MustCompile(`(?s)[ \t]*<!-- IF_GOPRIVATE -->\n.*?<!-- END_GOPRIVATE -->\n?`)
+	goPrivateMarkerRE = regexp.MustCompile(`[ \t]*<!-- (?:IF_GOPRIVATE|END_GOPRIVATE) -->\n`)
+	// collapseBlankLinesRE collapses runs of 3+ newlines into 2 so stripping a
+	// fenced section never leaves stacked blank lines (would trip markdownlint
+	// MD012).
+	collapseBlankLinesRE = regexp.MustCompile(`\n{3,}`)
 )
+
+// stripGoPrivateBlocks removes IF_GOPRIVATE/END_GOPRIVATE fences from rendered
+// templates. When keep is true the fences are stripped but content is kept;
+// when keep is false the entire fenced section is removed.
+func stripGoPrivateBlocks(body string, keep bool) string {
+	if keep {
+		body = goPrivateMarkerRE.ReplaceAllString(body, "")
+	} else {
+		body = goPrivateBlockRE.ReplaceAllString(body, "")
+	}
+	return collapseBlankLinesRE.ReplaceAllString(body, "\n\n")
+}
 
 // Generate writes a service bootstrap project to Config.OutputDir.
 func Generate(cfg Config) error {
@@ -60,20 +82,23 @@ func Generate(cfg Config) error {
 		return err
 	}
 
+	goPrivate := goPrivateFromLibPath(cfg.LibPath)
 	replacer := strings.NewReplacer(
 		"___MODULE___", cfg.ModulePath,
 		"___NAME___", cfg.Name,
 		"___CODE_OWNER___", cfg.CodeOwner,
 		"___LIB_PATH___", cfg.LibPath,
+		"___LIB_NAMESPACE___", libNamespaceFromLibPath(cfg.LibPath),
 		"___LIB_UTIL_VERSION___", cfg.LibUtilVersion,
 		"___LIB_MONITOR_VERSION___", cfg.LibMonitorVersion,
 		"___LIB_ORM_VERSION___", cfg.LibOrmVersion,
 		"___LIB_ASYNC_VERSION___", cfg.LibAsyncVersion,
+		"___GOPRIVATE___", goPrivate,
 	)
 
 	ctx := context.Background()
 
-	if err := walkAndWrite(cfg, "_templates/"+cfg.Pattern, replacer); err != nil {
+	if err := walkAndWrite(cfg, "_templates/"+cfg.Pattern, replacer, goPrivate != ""); err != nil {
 		return err
 	}
 
@@ -137,7 +162,7 @@ func normalizeAndValidate(cfg *Config) error {
 	return nil
 }
 
-func walkAndWrite(cfg Config, root string, replacer *strings.Replacer) error {
+func walkAndWrite(cfg Config, root string, replacer *strings.Replacer, keepGoPrivate bool) error {
 	err := fs.WalkDir(templatesFS, root, func(path string, entry fs.DirEntry, walkErr error) error {
 		if walkErr != nil {
 			return walkErr
@@ -153,7 +178,7 @@ func walkAndWrite(cfg Config, root string, replacer *strings.Replacer) error {
 		if err != nil {
 			return fmt.Errorf("read embedded %s: %w", path, err)
 		}
-		return writeFile(cfg.OutputDir, rel, string(body), replacer, cfg.Force)
+		return writeFile(cfg.OutputDir, rel, string(body), replacer, cfg.Force, keepGoPrivate)
 	})
 	if err != nil {
 		return fmt.Errorf("walk templates %s: %w", root, err)
@@ -168,6 +193,35 @@ func defaultIfEmpty(s, fallback string) string {
 	return s
 }
 
+// libNamespaceFromLibPath returns the path portion of LibPath after the host,
+// e.g. "gitlab.example.com/team/sub" -> "team/sub". Used in clone examples in
+// the README where the host is rendered separately as ___GOPRIVATE___.
+func libNamespaceFromLibPath(libPath string) string {
+	if i := strings.Index(libPath, "/"); i >= 0 {
+		return libPath[i+1:]
+	}
+	return ""
+}
+
+// goPrivateFromLibPath returns the GOPRIVATE host derived from LibPath.
+// LibPath rooted at github.com yields an empty string because public github
+// modules are served by the default proxy and need no private-host handling.
+// Any other host is returned verbatim and ends up in `GOPRIVATE`, the
+// Dockerfile env, and the GitLab CI variables block.
+func goPrivateFromLibPath(libPath string) string {
+	if libPath == "" {
+		return ""
+	}
+	host := libPath
+	if i := strings.Index(libPath, "/"); i >= 0 {
+		host = libPath[:i]
+	}
+	if host == "github.com" {
+		return ""
+	}
+	return host
+}
+
 func ciAllows(ci, rel string) bool {
 	switch ci {
 	case CIGitLab:
@@ -177,7 +231,7 @@ func ciAllows(ci, rel string) bool {
 	}
 }
 
-func writeFile(root, rel, body string, replacer *strings.Replacer, force bool) error {
+func writeFile(root, rel, body string, replacer *strings.Replacer, force, keepGoPrivate bool) error {
 	// Templates may carry a .tmpl suffix so files like go.mod don't make Go's
 	// embed see a nested module. Strip the suffix from the output path.
 	rel = strings.TrimSuffix(rel, ".tmpl")
@@ -190,7 +244,7 @@ func writeFile(root, rel, body string, replacer *strings.Replacer, force bool) e
 			return fmt.Errorf("stat %s: %w", target, statErr)
 		}
 	}
-	rendered := replacer.Replace(body)
+	rendered := stripGoPrivateBlocks(replacer.Replace(body), keepGoPrivate)
 	rendered = strings.TrimRight(rendered, " \t\r\n") + "\n"
 	if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
 		return fmt.Errorf("create parent directory for %s: %w", target, err)

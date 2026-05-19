@@ -25,6 +25,19 @@ variables:
     DOCKER_TLS_CERTDIR: ""
     DOCKER_DRIVER: "overlay2"
     IMAGE_NAME: "___NAME___"
+    # Empty when lib-path is on github.com. When set, the go toolchain skips
+    # the proxy/sumdb for this host and the default before_script writes a
+    # CI_JOB_TOKEN-based ~/.netrc so `go mod download` can auth.
+    GOPRIVATE: "___GOPRIVATE___"
+
+default:
+    before_script:
+        - |
+            if [ -n "${GOPRIVATE:-}" ] && [ -n "${CI_JOB_TOKEN:-}" ]; then
+                printf 'machine %s login gitlab-ci-token password %s\n' "${CI_SERVER_HOST}" "${CI_JOB_TOKEN}" > "${HOME}/.netrc"
+                chmod 600 "${HOME}/.netrc"
+                git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@${CI_SERVER_HOST}/".insteadOf "https://${CI_SERVER_HOST}/"
+            fi
 
 .docker_job:
     image: $CI_DOCKER_CLI_IMAGE
@@ -32,6 +45,12 @@ variables:
         - name: $CI_DOCKER_DIND_IMAGE
           alias: docker
     before_script:
+        - |
+            if [ -n "${GOPRIVATE:-}" ] && [ -n "${CI_JOB_TOKEN:-}" ]; then
+                printf 'machine %s login gitlab-ci-token password %s\n' "${CI_SERVER_HOST}" "${CI_JOB_TOKEN}" > /tmp/netrc
+                chmod 600 /tmp/netrc
+                export BUILD_SECRETS_NETRC=/tmp/netrc
+            fi
         - |
             for attempt in 1 2 3 4 5; do
                 if docker info >/dev/null 2>&1; then
