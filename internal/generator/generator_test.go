@@ -77,7 +77,6 @@ func TestGeneratePatterns(t *testing.T) {
 				ModulePath: "github.com/kitti12911/demo-" + tc.pattern,
 				OutputDir:  dir,
 				Pattern:    tc.pattern,
-				CI:         CIGitHub,
 				LibPath:    "github.com/kitti12911",
 				NoTidy:     true,
 				NoGit:      true,
@@ -103,46 +102,6 @@ func TestGeneratePatterns(t *testing.T) {
 	}
 }
 
-func TestCIFilter(t *testing.T) {
-	cases := []struct {
-		ci       string
-		wantGH   bool
-		wantGitL bool
-	}{
-		{CIGitHub, true, false},
-		{CIGitLab, false, true},
-	}
-
-	for _, tc := range cases {
-		t.Run(tc.ci, func(t *testing.T) {
-			dir := filepath.Join(t.TempDir(), "demo")
-			err := Generate(Config{
-				Name:       "demo",
-				ModulePath: "github.com/kitti12911/demo",
-				OutputDir:  dir,
-				Pattern:    PatternWorker,
-				CI:         tc.ci,
-				LibPath:    "github.com/kitti12911",
-				NoTidy:     true,
-				NoGit:      true,
-			})
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			ghExists := exists(filepath.Join(dir, ".github", "workflows", "go-ci.yml"))
-			glExists := exists(filepath.Join(dir, ".gitlab-ci.yml"))
-
-			if ghExists != tc.wantGH {
-				t.Errorf("github workflows: got exists=%v, want %v", ghExists, tc.wantGH)
-			}
-			if glExists != tc.wantGitL {
-				t.Errorf("gitlab-ci.yml: got exists=%v, want %v", glExists, tc.wantGitL)
-			}
-		})
-	}
-}
-
 func TestGenerateRejectsBadInputs(t *testing.T) {
 	cases := []struct {
 		name string
@@ -151,47 +110,32 @@ func TestGenerateRejectsBadInputs(t *testing.T) {
 	}{
 		{
 			name: "bad name",
-			cfg:  Config{Name: "BadName", ModulePath: "x", OutputDir: t.TempDir(), Pattern: PatternGRPC, CI: CIGitHub, LibPath: "github.com/kitti12911"},
+			cfg:  Config{Name: "BadName", ModulePath: "x", OutputDir: t.TempDir(), Pattern: PatternGRPC, LibPath: "github.com/kitti12911"},
 			want: "kebab-case",
 		},
 		{
 			name: "missing module",
-			cfg:  Config{Name: "ok", OutputDir: t.TempDir(), Pattern: PatternGRPC, CI: CIGitHub, LibPath: "github.com/kitti12911"},
+			cfg:  Config{Name: "ok", OutputDir: t.TempDir(), Pattern: PatternGRPC, LibPath: "github.com/kitti12911"},
 			want: "module",
 		},
 		{
 			name: "missing pattern",
-			cfg:  Config{Name: "ok", ModulePath: "x", OutputDir: t.TempDir(), CI: CIGitHub, LibPath: "github.com/kitti12911"},
+			cfg:  Config{Name: "ok", ModulePath: "x", OutputDir: t.TempDir(), LibPath: "github.com/kitti12911"},
 			want: "pattern",
 		},
 		{
 			name: "unknown pattern",
-			cfg:  Config{Name: "ok", ModulePath: "x", OutputDir: t.TempDir(), Pattern: "rest", CI: CIGitHub, LibPath: "github.com/kitti12911"},
+			cfg:  Config{Name: "ok", ModulePath: "x", OutputDir: t.TempDir(), Pattern: "rest", LibPath: "github.com/kitti12911"},
 			want: "unknown pattern",
 		},
 		{
-			name: "missing ci",
-			cfg:  Config{Name: "ok", ModulePath: "x", OutputDir: t.TempDir(), Pattern: PatternGRPC, LibPath: "github.com/kitti12911"},
-			want: "ci is required",
-		},
-		{
-			name: "unknown ci",
-			cfg:  Config{Name: "ok", ModulePath: "x", OutputDir: t.TempDir(), Pattern: PatternGRPC, CI: "circle", LibPath: "github.com/kitti12911"},
-			want: "unknown ci",
-		},
-		{
-			name: "rejects both ci",
-			cfg:  Config{Name: "ok", ModulePath: "x", OutputDir: t.TempDir(), Pattern: PatternGRPC, CI: "both", LibPath: "github.com/kitti12911"},
-			want: "unknown ci",
-		},
-		{
 			name: "missing lib-path",
-			cfg:  Config{Name: "ok", ModulePath: "x", OutputDir: t.TempDir(), Pattern: PatternGRPC, CI: CIGitHub},
+			cfg:  Config{Name: "ok", ModulePath: "x", OutputDir: t.TempDir(), Pattern: PatternGRPC},
 			want: "lib-path is required",
 		},
 		{
 			name: "lib-path with trailing lib segment",
-			cfg:  Config{Name: "ok", ModulePath: "x", OutputDir: t.TempDir(), Pattern: PatternGRPC, CI: CIGitHub, LibPath: "github.com/kitti12911/lib-util"},
+			cfg:  Config{Name: "ok", ModulePath: "x", OutputDir: t.TempDir(), Pattern: PatternGRPC, LibPath: "github.com/kitti12911/lib-util"},
 			want: "lib-*",
 		},
 	}
@@ -220,7 +164,6 @@ func TestGenerateRefusesExistingFile(t *testing.T) {
 		ModulePath: "github.com/kitti12911/demo-grpc",
 		OutputDir:  dir,
 		Pattern:    PatternGRPC,
-		CI:         CIGitHub,
 		LibPath:    "github.com/kitti12911",
 		NoTidy:     true,
 		NoGit:      true,
@@ -238,7 +181,6 @@ func TestGenerateUsesConfiguredCodeOwner(t *testing.T) {
 		OutputDir:  dir,
 		CodeOwner:  "@example/platform",
 		Pattern:    PatternWorker,
-		CI:         CIGitHub,
 		LibPath:    "github.com/kitti12911",
 		NoTidy:     true,
 		NoGit:      true,
@@ -253,104 +195,9 @@ func TestGenerateSubstitutesLibPath(t *testing.T) {
 	dir := filepath.Join(t.TempDir(), "demo")
 	err := Generate(Config{
 		Name:       "demo",
-		ModulePath: "gitlab.bu8-sd.com/sdo/pharse-3/demo",
-		OutputDir:  dir,
-		Pattern:    PatternWorker,
-		CI:         CIGitLab,
-		LibPath:    "gitlab.bu8-sd.com/sdo/pharse-3",
-		NoTidy:     true,
-		NoGit:      true,
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	assertFileContains(t, dir, "go.mod", "gitlab.bu8-sd.com/sdo/pharse-3/lib-util/v3 "+DefaultLibUtilVersion)
-	assertFileContains(t, dir, "internal/config/config.go", "gitlab.bu8-sd.com/sdo/pharse-3/lib-monitor")
-	if exists(filepath.Join(dir, ".github")) {
-		t.Errorf(".github should not exist when ci=gitlab")
-	}
-}
-
-func TestGoPrivateFromLibPath(t *testing.T) {
-	cases := []struct {
-		libPath string
-		want    string
-	}{
-		{"", ""},
-		{"github.com/kitti12911", ""},
-		{"github.com", ""},
-		{"gitlab.bu8-sd.com/sdo/pharse-3", "gitlab.bu8-sd.com"},
-		{"gitlab.example.com", "gitlab.example.com"},
-		{"git.internal.corp/team", "git.internal.corp"},
-	}
-	for _, tc := range cases {
-		got := goPrivateFromLibPath(tc.libPath)
-		if got != tc.want {
-			t.Errorf("goPrivateFromLibPath(%q) = %q, want %q", tc.libPath, got, tc.want)
-		}
-	}
-}
-
-func TestGeneratePrivateLibPathEmitsGoPrivate(t *testing.T) {
-	dir := filepath.Join(t.TempDir(), "demo")
-	err := Generate(Config{
-		Name:       "demo",
-		ModulePath: "gitlab.bu8-sd.com/sdo/pharse-3/demo",
-		OutputDir:  dir,
-		Pattern:    PatternGRPC,
-		CI:         CIGitLab,
-		LibPath:    "gitlab.bu8-sd.com/sdo/pharse-3",
-		NoTidy:     true,
-		NoGit:      true,
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	assertFileContains(t, dir, "Dockerfile", "ARG GOPRIVATE=gitlab.bu8-sd.com")
-	assertFileContains(t, dir, "Dockerfile", "--mount=type=secret,id=netrc")
-	assertFileContains(t, dir, ".gitlab-ci.yml", `GOPRIVATE: "gitlab.bu8-sd.com"`)
-	assertFileContains(t, dir, ".gitlab-ci.yml", "CI_JOB_TOKEN")
-	assertFileContains(t, dir, ".gitlab-ci.yml", "BUILD_SECRETS_NETRC=/tmp/netrc")
-	assertFileContains(t, dir, "scripts/ci/build-image.sh", "id=netrc,src=${BUILD_SECRETS_NETRC}")
-	assertFileContains(t, dir, "README.md", "## Private Go modules")
-	assertFileContains(t, dir, "README.md", "gitlab.bu8-sd.com/sdo/pharse-3")
-	// SSH clone example uses host + namespace-only path (no host duplication).
-	assertFileContains(t, dir, "README.md", "git clone git@gitlab.bu8-sd.com:sdo/pharse-3/lib-util.git")
-	// HTTPS clone example combines host + namespace.
-	assertFileContains(t, dir, "README.md", "git clone https://gitlab.bu8-sd.com/sdo/pharse-3/lib-util.git")
-	assertFileExcludes(t, dir, "README.md", "<!-- IF_GOPRIVATE -->")
-	assertFileExcludes(t, dir, "README.md", "<!-- END_GOPRIVATE -->")
-	// Catch host duplication regressions (e.g. ___GOPRIVATE___:___LIB_PATH___).
-	assertFileExcludes(t, dir, "README.md", "gitlab.bu8-sd.com:gitlab.bu8-sd.com")
-	assertFileExcludes(t, dir, "Dockerfile", "ARG GOPRIVATE=github.com")
-}
-
-func TestLibNamespaceFromLibPath(t *testing.T) {
-	cases := []struct {
-		libPath string
-		want    string
-	}{
-		{"", ""},
-		{"github.com", ""},
-		{"github.com/kitti12911", "kitti12911"},
-		{"gitlab.bu8-sd.com/sdo/pharse-3", "sdo/pharse-3"},
-	}
-	for _, tc := range cases {
-		got := libNamespaceFromLibPath(tc.libPath)
-		if got != tc.want {
-			t.Errorf("libNamespaceFromLibPath(%q) = %q, want %q", tc.libPath, got, tc.want)
-		}
-	}
-}
-
-func TestGeneratePublicLibPathOmitsGoPrivateBlock(t *testing.T) {
-	dir := filepath.Join(t.TempDir(), "demo")
-	err := Generate(Config{
-		Name:       "demo",
 		ModulePath: "github.com/kitti12911/demo",
 		OutputDir:  dir,
-		Pattern:    PatternGRPC,
-		CI:         CIGitHub,
+		Pattern:    PatternWorker,
 		LibPath:    "github.com/kitti12911",
 		NoTidy:     true,
 		NoGit:      true,
@@ -358,21 +205,18 @@ func TestGeneratePublicLibPathOmitsGoPrivateBlock(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	assertFileContains(t, dir, "Dockerfile", "ARG GOPRIVATE=")
-	assertFileExcludes(t, dir, "README.md", "## Private Go modules")
-	assertFileExcludes(t, dir, "README.md", "<!-- IF_GOPRIVATE -->")
-	assertFileExcludes(t, dir, "README.md", "<!-- END_GOPRIVATE -->")
+	assertFileContains(t, dir, "go.mod", "github.com/kitti12911/lib-util/v3 "+DefaultLibUtilVersion)
+	assertFileContains(t, dir, "internal/config/config.go", "github.com/kitti12911/lib-monitor")
 }
 
 func TestGenerateOverridesLibVersions(t *testing.T) {
 	dir := filepath.Join(t.TempDir(), "demo")
 	err := Generate(Config{
 		Name:              "demo",
-		ModulePath:        "gitlab.bu8-sd.com/sdo/pharse-3/demo",
+		ModulePath:        "github.com/kitti12911/demo",
 		OutputDir:         dir,
 		Pattern:           PatternGRPC,
-		CI:                CIGitLab,
-		LibPath:           "gitlab.bu8-sd.com/sdo/pharse-3",
+		LibPath:           "github.com/kitti12911",
 		LibUtilVersion:    "v3.99.0",
 		LibMonitorVersion: "v2.0.0",
 		LibOrmVersion:     "v3.42.0",
@@ -401,22 +245,6 @@ func assertFileContains(t *testing.T, root, rel, want string) {
 	if !strings.Contains(string(body), want) {
 		t.Fatalf("%s does not contain %q\n---\n%s", rel, want, body)
 	}
-}
-
-func assertFileExcludes(t *testing.T, root, rel, unwanted string) {
-	t.Helper()
-	body, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(rel)))
-	if err != nil {
-		t.Fatalf("read %s: %v", rel, err)
-	}
-	if strings.Contains(string(body), unwanted) {
-		t.Fatalf("%s unexpectedly contains %q\n---\n%s", rel, unwanted, body)
-	}
-}
-
-func exists(path string) bool {
-	_, err := os.Stat(path)
-	return err == nil
 }
 
 func countFiles(t *testing.T, root string) int {

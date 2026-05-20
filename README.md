@@ -10,6 +10,17 @@ with flat string substitution and no hidden framework behavior.
 
 Generated projects build, test, and lint cleanly out of the box.
 
+## Prerequisites
+
+Install the third-party CLIs this repo expects. Match `go.mod` for the Go
+version.
+
+### macOS (Homebrew)
+
+```sh
+brew install go golangci-lint prettier markdownlint-cli2
+```
+
 ## Installation
 
 Install the latest released command:
@@ -38,7 +49,6 @@ go run ./cmd/service-gen \
     -name demo-grpc \
     -module github.com/kitti12911/demo-grpc \
     -pattern grpc \
-    -ci github \
     -lib-path github.com/kitti12911 \
     -out ../demo-grpc \
     -code-owner @kitti12911
@@ -51,8 +61,7 @@ go run ./cmd/service-gen \
 | `-name`       | yes      |               | Project name in lowercase kebab-case                                                                                                                       |
 | `-module`     | yes      |               | Go module path                                                                                                                                             |
 | `-pattern`    | yes      |               | `grpc`, `oas`, or `worker`                                                                                                                                 |
-| `-ci`         | yes      |               | `github` or `gitlab`                                                                                                                                       |
-| `-lib-path`   | yes      |               | Base path for `lib-*` dependencies, without the trailing `lib-*` segment. For example `github.com/kitti12911` or `gitlab.bu8-sd.com/sdo/pharse-3`.         |
+| `-lib-path`   | yes      |               | Base path for `lib-*` dependencies, without the trailing `lib-*` segment, for example `github.com/kitti12911`.                                             |
 | `-out`        | no       | `-name`       | Output directory                                                                                                                                           |
 | `-code-owner` | no       | `@kitti12911` | CODEOWNERS owner                                                                                                                                           |
 | `-force`      | no       | `false`       | Overwrite existing generated files                                                                                                                         |
@@ -70,9 +79,9 @@ so the project is immediately usable.
 | `oas`    | Huma-based OpenAPI/REST service with a `/health` endpoint, OpenAPI JSON/YAML serving, embedded Swagger UI, and an OpenAPI diff/report CI tool. No DB.                                                                              |
 | `worker` | Minimal `lib-async` worker with an event loop and handler.                                                                                                                                                                         |
 
-Every pattern ships GitHub Actions or GitLab CI (per `-ci`), Renovate,
-CODEOWNERS, golangci-lint, markdownlint, Prettier, `.air.toml`, a multi-stage
-`Dockerfile`, and semantic-release.
+Every pattern ships GitHub Actions, Renovate, CODEOWNERS, golangci-lint,
+markdownlint, Prettier, `.air.toml`, a multi-stage `Dockerfile`, and
+semantic-release.
 
 The `internal/feature` / `internal/api` example is deliberately a single simple
 function. Add real business logic and (for gRPC) `.proto` files yourself; run

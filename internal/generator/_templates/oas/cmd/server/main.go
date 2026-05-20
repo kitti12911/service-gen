@@ -17,6 +17,11 @@ import (
 
 	"___MODULE___/internal/config"
 	"___MODULE___/internal/server"
+
+	// Register the round_robin balancer so gRPC clients (tracing exporter,
+	// future downstream service calls) spread requests across multiple
+	// addresses from a headless Kubernetes service.
+	_ "google.golang.org/grpc/balancer/roundrobin"
 )
 
 func main() {

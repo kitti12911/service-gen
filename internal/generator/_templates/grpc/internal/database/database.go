@@ -13,6 +13,7 @@ func New(ctx context.Context, cfg *config.Config) (*orm.DB, error) {
 		ctx,
 		cfg.Database,
 		orm.WithApplicationName(cfg.Service.Name),
+		orm.WithModels(models()...),
 		orm.WithTracing(cfg.Tracing.Enabled),
 	)
 }

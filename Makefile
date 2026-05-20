@@ -38,12 +38,12 @@ fix:
 examples: example-grpc example-oas example-worker
 
 example-grpc:
-	go run ./cmd/service-gen -name demo-grpc -module github.com/kitti12911/demo-grpc -pattern grpc -out tmp/demo-grpc -force -no-tidy -no-git
+	go run ./cmd/service-gen -name demo-grpc -module github.com/kitti12911/demo-grpc -pattern grpc -lib-path github.com/kitti12911 -out tmp/demo-grpc -force -no-tidy -no-git
 
 example-oas:
-	go run ./cmd/service-gen -name demo-oas -module github.com/kitti12911/demo-oas -pattern oas -out tmp/demo-oas -force -no-tidy -no-git
+	go run ./cmd/service-gen -name demo-oas -module github.com/kitti12911/demo-oas -pattern oas -lib-path github.com/kitti12911 -out tmp/demo-oas -force -no-tidy -no-git
 
 example-worker:
-	go run ./cmd/service-gen -name demo-worker -module github.com/kitti12911/demo-worker -pattern worker -out tmp/demo-worker -force -no-tidy -no-git
+	go run ./cmd/service-gen -name demo-worker -module github.com/kitti12911/demo-worker -pattern worker -lib-path github.com/kitti12911 -out tmp/demo-worker -force -no-tidy -no-git
 
 # force update #1

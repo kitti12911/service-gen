@@ -18,6 +18,11 @@ import (
 	"___LIB_PATH___/lib-util/v3/logger"
 
 	"github.com/dromara/carbon/v2"
+
+	// Register the round_robin balancer so gRPC clients (tracing exporter,
+	// future cross-service calls) spread requests across multiple addresses
+	// from a headless Kubernetes service.
+	_ "google.golang.org/grpc/balancer/roundrobin"
 )
 
 func main() {

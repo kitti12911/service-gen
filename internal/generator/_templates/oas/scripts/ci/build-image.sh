@@ -37,12 +37,6 @@ if [ -n "${BUILD_SBOM:-}" ]; then
 	set -- "$@" --sbom="${BUILD_SBOM}"
 fi
 
-# Pass a netrc file as a buildx secret so the Dockerfile's `go mod download`
-# step can auth against private hosts (mounted via `--mount=type=secret,id=netrc`).
-if [ -n "${BUILD_SECRETS_NETRC:-}" ]; then
-	set -- "$@" --secret "id=netrc,src=${BUILD_SECRETS_NETRC}"
-fi
-
 set -- "$@" "${context}"
 
 "$@"

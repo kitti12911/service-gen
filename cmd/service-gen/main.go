@@ -7,7 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/kitti12911/service-gen/v2/internal/generator"
+	"github.com/kitti12911/service-gen/v3/internal/generator"
 )
 
 func main() {
@@ -18,8 +18,7 @@ func main() {
 	flag.StringVar(&cfg.OutputDir, "out", "", "output directory (defaults to -name)")
 	flag.StringVar(&cfg.CodeOwner, "code-owner", "@kitti12911", "CODEOWNERS owner, for example @team/service-owners")
 	flag.StringVar(&cfg.Pattern, "pattern", "", "service pattern: grpc | oas | worker")
-	flag.StringVar(&cfg.CI, "ci", "", "CI flavor to emit (required): github | gitlab")
-	flag.StringVar(&cfg.LibPath, "lib-path", "", "base path for lib-* dependencies (required), for example github.com/kitti12911 or gitlab.bu8-sd.com/sdo/pharse-3")
+	flag.StringVar(&cfg.LibPath, "lib-path", "", "base path for lib-* dependencies (required), for example github.com/kitti12911")
 	flag.StringVar(&cfg.LibUtilVersion, "lib-util-version", generator.DefaultLibUtilVersion, "version of lib-util/v3 to require in go.mod")
 	flag.StringVar(&cfg.LibMonitorVersion, "lib-monitor-version", generator.DefaultLibMonitorVersion, "version of lib-monitor to require in go.mod")
 	flag.StringVar(&cfg.LibOrmVersion, "lib-orm-version", generator.DefaultLibOrmVersion, "version of lib-orm/v3 to require in go.mod (grpc pattern only)")
