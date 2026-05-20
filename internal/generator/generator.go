@@ -40,7 +40,7 @@ const (
 
 	DefaultLibUtilVersion    = "v3.15.1"
 	DefaultLibMonitorVersion = "v1.12.1"
-	DefaultLibOrmVersion     = "v3.1.1"
+	DefaultLibOrmVersion     = "v3.3.0"
 	DefaultLibAsyncVersion   = "v1.5.2"
 )
 
