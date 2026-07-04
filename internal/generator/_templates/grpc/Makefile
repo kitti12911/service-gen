@@ -44,9 +44,9 @@ fix:
 	go fix ./...
 
 # ____________________ Generate Command ____________________
-# Once you have created a protomapgen.yaml and uncommented the gen-mappers
-# target below, add it to this list so `make gen` regenerates mappers too.
-gen: gen-proto gen-go
+# mapgen is zero-config: it discovers models, params structs, and proto types
+# by convention. See lib-orm/cmd/mapgen for the conventions and directives.
+gen: gen-proto gen-go gen-mappers
 
 gen-proto:
 	rm -rf gen/grpc
@@ -54,17 +54,9 @@ gen-proto:
 
 gen-go:
 	rm -rf gen/database
-	go run ___LIB_PATH___/lib-orm/v3/cmd/mapgen@___LIB_ORM_VERSION___ fields -model-dir internal/database -root Example -out gen/database/fieldmap_generated.go -package database
+	go run ___LIB_PATH___/lib-orm/v4/cmd/mapgen@___LIB_ORM_VERSION___ fields
+	go run ___LIB_PATH___/lib-orm/v4/cmd/mapgen@___LIB_ORM_VERSION___ patch
+	go run ___LIB_PATH___/lib-orm/v4/cmd/mapgen@___LIB_ORM_VERSION___ filter
 
-# gen-mappers regenerates proto<->Go-struct mapper functions with mapgen proto.
-# It works on bun models (response paths: bun struct → proto) and plain Go
-# structs like service-layer params (request paths: proto → params struct via
-# `unwrap:`). Customisation (enum bridging, nested struct mapping) happens via
-# `converters:` in protomapgen.yaml + named functions in the target package —
-# the generated file itself should never be hand-edited. Uncomment once you
-# have defined a proto and created a protomapgen.yaml at the repo root
-# describing each (Go struct, proto) pair. See lib-orm/cmd/mapgen for
-# the full schema (direction, unwrap, target_pointer, func_to_proto, etc.).
-#
-# gen-mappers:
-#	go run ___LIB_PATH___/lib-orm/v3/cmd/mapgen@___LIB_ORM_VERSION___ proto -config protomapgen.yaml
+gen-mappers:
+	go run ___LIB_PATH___/lib-orm/v4/cmd/mapgen@___LIB_ORM_VERSION___ map

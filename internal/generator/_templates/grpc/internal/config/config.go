@@ -5,7 +5,7 @@ import (
 
 	"___LIB_PATH___/lib-monitor/profiling"
 	"___LIB_PATH___/lib-monitor/tracing"
-	liborm "___LIB_PATH___/lib-orm/v3"
+	liborm "___LIB_PATH___/lib-orm/v4"
 	"___LIB_PATH___/lib-util/v3/logger"
 )
 

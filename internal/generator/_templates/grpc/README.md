@@ -8,7 +8,7 @@ Internal gRPC service scaffolded by
 - gRPC server with the standard health service and reflection.
 - Configuration via `config.yml` / environment variables (`lib-util/v3`).
 - Structured logging, OpenTelemetry tracing, and Pyroscope profiling.
-- `lib-orm/v3` database connection wiring (no migrations — those live in a
+- `lib-orm/v4` database connection wiring (no migrations — those live in a
   migration repository such as `migration-sandbox`).
 - A `internal/feature/starter` package with a single `Ping` function as a
   starting point.

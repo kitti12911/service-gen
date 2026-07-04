@@ -19,11 +19,11 @@ func TestGeneratePatterns(t *testing.T) {
 			mustHave: []fileCheck{
 				{"go.mod", "module github.com/kitti12911/demo-grpc"},
 				{"go.mod", "go 1.26.4"},
-				{"go.mod", "github.com/kitti12911/lib-orm/v3"},
+				{"go.mod", "github.com/kitti12911/lib-orm/v4"},
 				{"internal/server/grpc.go", "NewGRPCServer"},
 				{"internal/server/grpc.go", "RegisterHealthServer"},
 				{"internal/feature/starter/starter.go", "func Ping"},
-				{"internal/database/database.go", "github.com/kitti12911/lib-orm/v3"},
+				{"internal/database/database.go", "github.com/kitti12911/lib-orm/v4"},
 				{"buf.gen.yaml", "directory: proto"},
 				{"config.example.yml", "name: demo-grpc"},
 				{".github/workflows/go-ci.yml", "actions/checkout"},
@@ -228,7 +228,7 @@ func TestGenerateOverridesLibVersions(t *testing.T) {
 	}
 	assertFileContains(t, dir, "go.mod", "lib-util/v3 v3.99.0")
 	assertFileContains(t, dir, "go.mod", "lib-monitor v2.0.0")
-	assertFileContains(t, dir, "go.mod", "lib-orm/v3 v3.42.0")
+	assertFileContains(t, dir, "go.mod", "lib-orm/v4 v3.42.0")
 }
 
 type fileCheck struct {
