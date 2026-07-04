@@ -1,13 +1,12 @@
 replicaCount: 1
 
 image:
-    repository: zot.lan/kitti12911/___NAME___
+    repository: ghcr.io/kitti12911/___NAME___
     tag: ""
     digest: ""
     pullPolicy: IfNotPresent
 
-imagePullSecrets:
-    - name: zot-registry
+imagePullSecrets: []
 
 env: []
 
