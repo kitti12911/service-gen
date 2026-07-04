@@ -38,10 +38,10 @@ const (
 	PatternOAS    = "oas"
 	PatternWorker = "worker"
 
-	DefaultLibUtilVersion    = "v3.15.1"
-	DefaultLibMonitorVersion = "v1.12.1"
-	DefaultLibOrmVersion     = "v3.3.0"
-	DefaultLibAsyncVersion   = "v1.5.2"
+	DefaultLibUtilVersion    = "v3.17.0"
+	DefaultLibMonitorVersion = "v1.13.0"
+	DefaultLibOrmVersion     = "v3.5.0"
+	DefaultLibAsyncVersion   = "v1.6.0"
 )
 
 var (

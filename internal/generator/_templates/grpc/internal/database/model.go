@@ -8,7 +8,7 @@ import (
 
 // Example is a placeholder model. Replace with your real bun models and
 // register them through models() so that lib-orm picks them up at startup
-// and fieldmapgen can walk the package.
+// and mapgen fields can walk the package.
 type Example struct {
 	bun.BaseModel `bun:"table:examples,alias:e"`
 

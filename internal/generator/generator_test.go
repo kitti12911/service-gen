@@ -18,7 +18,7 @@ func TestGeneratePatterns(t *testing.T) {
 			pattern: PatternGRPC,
 			mustHave: []fileCheck{
 				{"go.mod", "module github.com/kitti12911/demo-grpc"},
-				{"go.mod", "go 1.26.3"},
+				{"go.mod", "go 1.26.4"},
 				{"go.mod", "github.com/kitti12911/lib-orm/v3"},
 				{"internal/server/grpc.go", "NewGRPCServer"},
 				{"internal/server/grpc.go", "RegisterHealthServer"},
