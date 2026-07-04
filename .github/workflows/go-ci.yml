@@ -63,8 +63,6 @@ jobs:
 
             - name: Test with coverage
               run: ./scripts/ci/go-test.sh
-              env:
-                  GO_TEST_RACE: false
 
             - name: Show coverage
               run: |
