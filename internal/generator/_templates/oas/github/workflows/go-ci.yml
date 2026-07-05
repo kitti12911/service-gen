@@ -155,7 +155,7 @@ jobs:
               run: git config --global --add safe.directory "${GITHUB_WORKSPACE}"
 
             - name: Install OpenAPI comparison tools
-              run: go install github.com/oasdiff/oasdiff@v1.14.0
+              run: go install github.com/oasdiff/oasdiff@v1.21.0
 
             - name: Compare OpenAPI
               run: ./scripts/ci/openapi-report.sh
